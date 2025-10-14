@@ -54,9 +54,10 @@ def predict_and_visualize(
     image = image.unsqueeze(0).to(device)  # [1, 1, H, W, D]
     label = label.to(device).long().squeeze(0)
 
-    # Load model
+    # Load trained model safely
     model = ImprovedUNet3D(in_channels=1, out_channels=6, deep_supervision=True)
-    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    state_dict = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    model.load_state_dict(state_dict)
     model.to(device)
     model.eval()
 
@@ -69,7 +70,9 @@ def predict_and_visualize(
     # Convert prediction to numpy
     pred_label = torch.argmax(pred, dim=1).squeeze(0).cpu().numpy()
 
-    # Visualization: show middle slice
+    # ---------------------------------------------------------
+    # 🎨 Visualization: MRI slice, Ground Truth, Prediction
+    # ---------------------------------------------------------
     mid_slice = image.shape[4] // 2
     img_np = image.cpu().squeeze(0).squeeze(0).numpy()
     lbl_np = label.cpu().numpy()
@@ -78,19 +81,24 @@ def predict_and_visualize(
     plt.subplot(1, 3, 1)
     plt.imshow(img_np[:, :, mid_slice], cmap="gray")
     plt.title("MRI Slice")
+    plt.axis("off")
 
     plt.subplot(1, 3, 2)
-    plt.imshow(lbl_np[:, :, mid_slice])
+    plt.imshow(lbl_np[:, :, mid_slice], cmap="nipy_spectral")
     plt.title("Ground Truth Label")
+    plt.axis("off")
 
     plt.subplot(1, 3, 3)
-    plt.imshow(pred_label[:, :, mid_slice])
+    plt.imshow(pred_label[:, :, mid_slice], cmap="nipy_spectral")
     plt.title("Predicted Segmentation")
+    plt.axis("off")
 
     plt.tight_layout()
     plt.show()
 
-    # Optionally save predicted NIfTI
+    # ---------------------------------------------------------
+    # 💾 Optionally save predicted mask as NIfTI
+    # ---------------------------------------------------------
     if save_output:
         output_dir = "predictions"
         os.makedirs(output_dir, exist_ok=True)
