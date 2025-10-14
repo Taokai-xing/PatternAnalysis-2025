@@ -4,7 +4,8 @@ train.py
 COMP3710 – Prostate Segmentation using Improved 3D UNet
 --------------------------------------------------------
 Trains the model on HipMRI prostate dataset using Dice + CrossEntropy loss.
-Includes GPU support, checkpoint saving, and validation Dice score.
+Includes GPU support, checkpoint saving, validation Dice score, and
+plots for training loss and validation Dice.
 
 Author: Taokai Xing
 """
@@ -15,6 +16,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
 
 from dataset import Prostate3DDataset
 from modules import ImprovedUNet3D
@@ -87,6 +89,7 @@ def train_model(
     criterion = DiceCELoss()
 
     best_dice = 0.0
+    train_losses, val_dices = [], []
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -117,7 +120,11 @@ def train_model(
                 val_dice += dice_coefficient(preds, lbls, num_classes=6).item()
 
         val_dice /= len(val_dl)
-        print(f"Epoch {epoch}: Train Loss={train_loss/len(train_dl):.4f}, Val Dice={val_dice:.4f}")
+        avg_train_loss = train_loss / len(train_dl)
+        train_losses.append(avg_train_loss)
+        val_dices.append(val_dice)
+
+        print(f"Epoch {epoch}: Train Loss={avg_train_loss:.4f}, Val Dice={val_dice:.4f}")
 
         # Save best model
         if val_dice > best_dice:
@@ -125,7 +132,32 @@ def train_model(
             torch.save(model.state_dict(), save_path)
             print(f"✅ Saved best model (Dice={best_dice:.4f})")
 
+    # ---------------------------------------------------------
+    # 📊 Plot training loss and validation dice
+    # ---------------------------------------------------------
+    epochs_list = list(range(1, epochs + 1))
+    plt.figure(figsize=(10, 4))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_list, train_losses, label="Train Loss", color="blue")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Training Loss Curve")
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_list, val_dices, label="Validation Dice", color="orange")
+    plt.xlabel("Epoch")
+    plt.ylabel("Dice Coefficient")
+    plt.title("Validation Dice Curve")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig("training_curves.png")
+    plt.show()
+
     print(f"🎯 Training Done. Best Validation Dice: {best_dice:.4f}")
+    print("💾 Saved training curves to training_curves.png")
 
 
 # ---------------------------------------------------------
@@ -133,4 +165,3 @@ def train_model(
 # ---------------------------------------------------------
 if __name__ == "__main__":
     train_model(epochs=10, batch_size=1)
-
