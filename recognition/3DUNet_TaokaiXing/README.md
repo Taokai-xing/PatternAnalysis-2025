@@ -36,7 +36,7 @@ Deep Supervision Outputs
 Final 3D Softmax Layer
       ↓
 Predicted Segmentation (6 Classes)
-![Algorithm Workflow](how%20it%20works.jpg)
+![Algorithm Workflow](how_it_works.jpg)
 ## Dependencies and Reproducibility
 
 This project was developed and tested using **Python 3.11** with **PyTorch 2.5.1 + CUDA 12.1** on Windows 10.  
